@@ -1,24 +1,19 @@
 <?php
-	global $db;
-	require_once('iTunesRSS.php');
-	require_once('FacebookWriter.php');
-	require_once('DataBroker.php');
 
 	class ChartUpdater {
 
+		protected $em;
+
+		public function __construct(\Doctrine\ORM\EntityManager $em)
+		{
+			$this->em = $em;
+		}
+
 		public function run ($postToWall = true) {
-			global $db;
-
-			$db = new DataBroker();
-			if (!$db->Connect()){
-				echo "cannot connect to database, exiting.\n";
-				return;
-			}
-
-			$pageArray = $db->GetPages();
+			$pageArray = $this->em->getRepository('itunes\Page')->findAll();
 
 			foreach ($pageArray as $page){
-				//echo "\nupdating page: " . $page['name'] . "\n";
+				echo "\nupdating page: " . $page->getName() . "\n";
 				$this->HandlePageUpdate ($page, $postToWall);
 			}
 		}
@@ -26,13 +21,13 @@
 		private function HandlePageUpdate ($page, $postToWall) {
 			global $db;
 			$entriesToPost = null;
-			$idArray;
+			$idArray = [];
 
 			// get the feeds
 			$iTunes = new iTunesRSS();
-			$genreID = $page['id_genre'];
-			$pageID = $page['id'];
-			$accessToken = $page['access_token'];
+			$genreID = $page->getGenre()->getId();
+			$pageID = $page->getId();
+			$accessToken = $page->getAccessToken();
 
 			$feedEntries = $iTunes->GetFeedForGenre($genreID);
 
@@ -47,34 +42,58 @@
 				$idArray[] = $entryID;
 				$entry->newRank = $rank;
 
-				$song = $db->GetSong($entryID, $genreID);
+				$repo = $this->em->getRepository('itunes\Song');
+				$songEntity = $repo->findOneBy([
+					'id' => $entryID,
+					'genre' => $genreID
+				]);
 
-				if($song)
+				if($songEntity)
 				{
 					// if the new rank is less than the old rank (higher in the charts where 1 is the highest)
-					if ($rank < $song['rank'])
+					if ($rank < $songEntity->getRank())
 					{
-						$entry->oldRank = $song['rank'];
+						$entry->oldRank = $songEntity->getRank();
 						$entriesToPost[] = $entry;
 					}
+					$songEntity->setRank($rank);
+					$this->em->persist($songEntity);
 				}
 				else
 				{
+					$genre = $this->em->find('itunes\Genre', $genreID);
+					$songEntity = new \itunes\Song($entryID, $genre, $rank);
 					// new song, gotta post it
+					echo "\nNew Song Gotta post it\n";
 					$entriesToPost[] = $entry;
+					$this->em->persist($songEntity);
 				}
-				$db->InsertSong($entryID, $genreID, $rank);
+
 
 				$rank++;
 			}
 
 			// wipe database of all old things
-			$db->RemoveSongsWhereIDNotIn($idArray, $genreID);
+			$qb = $this->em->getRepository('itunes\Song')->createQueryBuilder('s');
 
-			if (Count($entriesToPost))
+			$qb
+				->where($qb->expr()->eq('s.genre', $genreID))
+				->andWhere($qb->expr()->notIn('s.id', $idArray))
+			;
+
+			$songsToDelete = $qb->getQuery()->execute();
+
+			foreach($songsToDelete as $songToDelete)
+			{
+				$this->em->remove($songsToDelete);
+			}
+
+			$this->em->flush();
+
+			if (count($entriesToPost))
 			{
 				$fbWriter = new FacebookWriter();
-				//echo "We have new entries to post :)\n";
+				echo "We have new entries to post :)\n";
 				if ($postToWall) {
 					$fbWriter->PostFeeds($entriesToPost, $pageID, $accessToken);
 				}

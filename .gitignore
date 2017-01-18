@@ -1,1 +1,4 @@
-facebook-php-sdk/*
+/vendor
+.idea
+proxies
+*.db

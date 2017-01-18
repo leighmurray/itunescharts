@@ -1,7 +1,5 @@
 <?php
-	require_once('ChartUpdater.php');
+	require_once __DIR__ .'/bootstrap.php';
 
-	$chartUpdater = new ChartUpdater();
+	$container['chart_updater']->run();
 
-	$chartUpdater->run();
-?>
