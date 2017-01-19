@@ -2,3 +2,4 @@
 .idea
 proxies
 *.db
+config.yml

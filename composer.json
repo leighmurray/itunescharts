@@ -3,7 +3,8 @@
         "facebook/graph-sdk": "^5.4",
         "doctrine/orm": "^2.5",
         "guzzlehttp/guzzle": "^6.2",
-        "pimple/pimple": "^3.0"
+        "pimple/pimple": "^3.0",
+        "symfony/yaml": "^3.2"
     },
     "autoload": {
         "psr-4": {"itunes\\": "Entities/"}

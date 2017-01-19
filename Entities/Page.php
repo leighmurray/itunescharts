@@ -11,9 +11,6 @@ class Page
     /** @Column(type="integer") @id */
     private $id;
 
-    /** @Column */
-    private $name;
-
     /** @OneToOne(targetEntity="Genre") */
     private $genre;
 
@@ -41,15 +38,7 @@ class Page
      */
     public function getName()
     {
-        return $this->name;
-    }
-
-    /**
-     * @param mixed $name
-     */
-    public function setName($name)
-    {
-        $this->name = $name;
+        return $this->getGenre()->getName();
     }
 
     /**

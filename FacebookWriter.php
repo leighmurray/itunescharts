@@ -2,18 +2,19 @@
 
 	class FacebookWriter {
 
-        public function __construct()
+        public function __construct($app_id, $app_secret, $affiliate_link)
         {
+            $this->affiliateLink = $affiliate_link;
+            $this->config['app_id'] = $app_id;
+            $this->config['app_secret'] = $app_secret;
             $this->fb = new \Facebook\Facebook($this->config);
         }
 
         private $fb;
-		private $affiliateLink = '&at=11ldhi';
-		private $config = array(
-				'app_id' => '1352185481479730',
-				'app_secret' => '420ef6602b8c9a73e709553e303c9ffa',
-				'default_graph_version' => 'v2.8'
-			  );
+		private $affiliateLink;
+		private $config = [
+		    'default_graph_version' => 'v2.8'
+        ];
 
 		public function PostFeeds ($feeds, $pageID, $accessToken) {
 
@@ -26,7 +27,7 @@
 				$link .= $this->affiliateLink;
 				$link .= $campaignString;
 
-				$title = "#$songRank. " . (string)$feed->title;
+				$title = "#{$songRank}. " . (string)$feed->title;
 				if ($feed->oldRank) {
 					$title = "↑ " . $title;
 				}
@@ -69,5 +70,11 @@
                 $accessToken
 			);
 		}
+
+		public function getLongLivedToken($shortLivedToken)
+        {
+            $token = $this->fb->getOAuth2Client()->getLongLivedAccessToken($shortLivedToken);
+            return $token;
+        }
 	}
 

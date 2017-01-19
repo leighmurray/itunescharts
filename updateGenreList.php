@@ -7,6 +7,15 @@
 
 	HandleGenreList($genreList);
 
+    $allGenres = $container['em']->find('itunes\Genre', 1);
+
+    if (!$allGenres)
+    {
+        $allGenres = new \itunes\Genre(1, 'All Genres');
+        $container['em']->persist($allGenres);
+        $container['em']->flush();
+    }
+
 	function HandleGenreList ($genreList) {
         global $container;
 

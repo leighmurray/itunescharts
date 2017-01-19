@@ -21,7 +21,7 @@ class Song
     /** @Column */
     private $rank;
 
-    /** @ManyToOne(targetEntity="Genre") */
+    /** @Id @ManyToOne(targetEntity="Genre") */
     private $genre;
 
     /**

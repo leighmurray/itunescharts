@@ -3,10 +3,12 @@
 	class ChartUpdater {
 
 		protected $em;
+        protected $fb_writer;
 
-		public function __construct(\Doctrine\ORM\EntityManager $em)
+		public function __construct(\Doctrine\ORM\EntityManager $em, FacebookWriter $fbWriter)
 		{
 			$this->em = $em;
+            $this->fbWriter = $fbWriter;
 		}
 
 		public function run ($postToWall = true) {
@@ -19,7 +21,6 @@
 		}
 
 		private function HandlePageUpdate ($page, $postToWall) {
-			global $db;
 			$entriesToPost = null;
 			$idArray = [];
 
@@ -85,22 +86,23 @@
 
 			foreach($songsToDelete as $songToDelete)
 			{
-				$this->em->remove($songsToDelete);
+				$this->em->remove($songToDelete);
 			}
 
 			$this->em->flush();
 
 			if (count($entriesToPost))
 			{
-				$fbWriter = new FacebookWriter();
 				echo "We have new entries to post :)\n";
 				if ($postToWall) {
-					$fbWriter->PostFeeds($entriesToPost, $pageID, $accessToken);
+                    // we are just going to post whatever item has the highest rank
+                    $itemToPost = array_pop($entriesToPost);
+					$this->fbWriter->PostFeeds([$itemToPost], $pageID, $accessToken);
 				}
 
 				// only need to update the description if we have new entries to post
 				// signifying a change in the top 10.
-				$fbWriter->SetDescription($feedEntries, $pageID, $accessToken);
+				$this->fbWriter->SetDescription($feedEntries, $pageID, $accessToken);
 			}
 			else
 			{
@@ -109,4 +111,3 @@
 		}
 	}
 
-?>
